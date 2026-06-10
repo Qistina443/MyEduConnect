@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Viewer - External API Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #264adc 0%, #1a3a8a 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .api-status { margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .search-box { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input, button { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #264adc; color: white; border: none; cursor: pointer; }
+        .courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .course-card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .course-card h3 { color: #264adc; margin-bottom: 10px; }
+        .course-price { font-size: 20px; font-weight: bold; color: #28a745; margin: 10px 0; }
+        .error { color: #dc3545; text-align: center; padding: 20px; }
+        footer { text-align: center; margin-top: 20px; padding: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1> MyEduConnect Course Viewer</h1>
+            <p>External Client consuming REST API</p>
+            <div class="api-status" id="apiStatus">Checking API connection...</div>
+        </header>
+        
+        <div class="search-box">
+            <h3>Search Courses</h3>
+            <input type="text" id="searchInput" placeholder="Search by title...">
+            <button id="searchBtn"> Search</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div id="coursesList" class="courses-grid">
+            <p>Loading courses...</p>
+        </div>
+        
+        <footer>
+            <p>External client consuming MyEduConnect REST API</p>
+        </footer>
+    </div>
+    
+    <script>
+        // USE THE CORRECT PATH - match where your API files are
+        // Based on your working URL, use this:
+        const API_BASE = '/CourseEnrollmentSystem/course_enrollment/api/';
+        
+        let currentSearch = '';
+        
+        async function loadCourses() {
+            let url = API_BASE + 'get_courses.php';
+            if (currentSearch) {
+                url += '?search=' + encodeURIComponent(currentSearch);
+            }
+            
+            try {
+                document.getElementById('apiStatus').innerHTML = 'Loading courses...';
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+                
+                if (data.success) {
+                    let courses = [];
+                    
+                    // Handle different response structures
+                    if (data.data && data.data.courses) {
+                        courses = data.data.courses;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        courses = data.data;
+                    } else if (Array.isArray(data.data)) {
+                        courses = data.data;
+                    } else {
+                        courses = data.data || [];
+                    }
+                    
+                    displayCourses(courses);
+                    document.getElementById('apiStatus').innerHTML = ' API Connected - ' + courses.length + ' courses found';
+                    document.getElementById('apiStatus').style.background = '#d4edda';
+                } else {
+                    throw new Error(data.error || 'API returned error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('coursesList').innerHTML = '<p class="error">Error loading courses: ' + error.message + '</p>';
+                document.getElementById('apiStatus').innerHTML = ' API Error: ' + error.message;
+                document.getElementById('apiStatus').style.background = '#f8d7da';
+            }
+        }
+        
+        function displayCourses(courses) {
+            if (!courses || courses.length === 0) {
+                document.getElementById('coursesList').innerHTML = '<p>No courses found.</p>';
+                return;
+            }
+            
+            let html = '';
+            courses.forEach(course => {
+                const courseName = course.course_name || course.title || 'Untitled';
+                const description = course.description || 'No description available';
+                const amount = course.amount || course.price || 0;
+                
+                html += `
+                    <div class="course-card">
+                        <h3>${escapeHtml(courseName)}</h3>
+                        <p>${escapeHtml(description.substring(0, 100))}${description.length > 100 ? '...' : ''}</p>
+                        <div class="course-price">RM ${parseFloat(amount).toFixed(2)}</div>
+                        <small>Day: ${course.day || 'TBA'} | Time: ${course.time || 'TBA'}</small>
+                    </div>
+                `;
+            });
+            document.getElementById('coursesList').innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function searchCourses() {
+            currentSearch = document.getElementById('searchInput').value;
+            loadCourses();
+        }
+        
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            currentSearch = '';
+            loadCourses();
+        }
+        
+        document.getElementById('searchBtn').addEventListener('click', searchCourses);
+        document.getElementById('resetBtn').addEventListener('click', resetSearch);
+        
+        // Load courses when page loads
+        loadCourses();
+    </script>
+</body>
+</html>

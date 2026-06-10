@@ -1,0 +1,18 @@
+# Docker volumes
+db_data/
+logs/
+*.log
+#Uploaded files
+uploads/
+*.tmp
+#OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+#IDE files
+.vscode/
+.idea/
+*.swp
+#Enviroment files
+.env
+.env.local

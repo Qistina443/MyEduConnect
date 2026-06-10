@@ -1,0 +1,75 @@
+
+
+services:
+  # Web Server (Apache + PHP)
+  web:
+    build: .
+    container_name: myeduconnect_web
+    ports:
+      - "8080:80"  # Access at http://localhost:8080
+    volumes:
+      - .:/var/www/html  # Mount your project files
+    depends_on:
+      - db
+    networks:
+      - myeduconnect_network
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+
+  # Database Server (MySQL/MariaDB)
+  db:
+    image: mariadb:10.6
+    container_name: myeduconnect_db
+    ports:
+      - "3307:3306"  # Access at port 3307 (avoid conflict with XAMPP)
+    environment:
+      # VULN: Empty password for vulnerability requirement
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: myeduconnect_db
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d  # Auto-run SQL files
+    networks:
+      - myeduconnect_network
+
+  # phpMyAdmin (Database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: myeduconnect_phpmyadmin
+    ports:
+      - "8081:80"  # Access at http://localhost:8081
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      # VULN: No authentication required
+    depends_on:
+      - db
+    networks:
+      - myeduconnect_network
+
+  # Optional: FTP Server for additional vulnerability
+  ftp:
+    image: stilliard/pure-ftpd
+    container_name: myeduconnect_ftp
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    environment:
+      PUBLICHOST: localhost
+      FTP_USER_NAME: anonymous
+      FTP_USER_PASS: ""
+      FTP_USER_HOME: /home/ftpusers
+    volumes:
+      - ./uploads:/home/ftpusers/anonymous
+    networks:
+      - myeduconnect_network
+
+networks:
+  myeduconnect_network:
+    driver: bridge
+
+volumes:
+  db_data:

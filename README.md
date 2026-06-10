@@ -53,7 +53,7 @@ docker compose up -d
 
 Main Application: http://localhost:8080
 phpMyAdmin: http://localhost:8081
-REST API: http://localhost:8080/api/index.php
+REST API: http://localhost:8080/api_client/index.html
 
 Step 5: Test Login
 Role	Email	                   Password
